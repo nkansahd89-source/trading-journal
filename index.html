@@ -290,6 +290,11 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.6;}
         </div>
         <button class="btn btn-ai" onclick="runAI()" id="ai-btn">🤖 Analyse My Trades</button>
       </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">🔑 API Key</div>
+        <input type="password" id="api-key-input" class="finput" placeholder="Paste your Anthropic API key here — saved privately in your browser only" style="flex:1;font-size:12px;" oninput="localStorage.setItem('pr_api_key',this.value)">
+        <button class="btn btn-ghost btn-sm" onclick="localStorage.removeItem('pr_api_key');document.getElementById('api-key-input').value='';alert('API key cleared.')">Clear</button>
+      </div>
       <div id="ai-content">
         <div class="ai-empty empty">
           <div class="empty-icon">🤖</div>
@@ -707,11 +712,16 @@ Please provide a detailed but concise coaching analysis covering:
 
 Format your response in clear sections with headers. Be specific, direct, and use the actual data. Keep the tone like a professional trading coach — honest but constructive.`;
 
+  const apiKey=localStorage.getItem('pr_api_key')||'';
+  if(!apiKey){
+    document.getElementById('ai-content').innerHTML=`<div class="ai-response"><p style="color:var(--amber)">Please paste your Anthropic API key in the field above first, then click Analyse My Trades.</p></div>`;
+    btn.disabled=false;btn.textContent='🤖 Analyse My Trades';return;
+  }
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
     const text=data.content?.[0]?.text||'No response received.';
@@ -737,6 +747,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('f-date').value=now.toISOString().split('T')[0];
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeBalModal();}});
   renderDash();updateSidebar();
+  const savedKey=localStorage.getItem('pr_api_key');
+  if(savedKey)document.getElementById('api-key-input').value=savedKey;
 });
 </script>
 </body>
